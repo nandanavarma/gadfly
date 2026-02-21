@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Real Talk Session | Gadfly</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        window.tailwind = window.tailwind || {};
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "burgundy": "#5D1A1B",
+                        "burgundy-light": "#7D2A2B",
+                        "cream": "#FDF9F3",
+                        "tan": "#E8D5C4",
+                        "glow-teal": "#A8DADC",
+                    },
+                    fontFamily: {
+                        "sans": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+    <style type="text/tailwindcss">
+        :root {
+            --primary-burgundy: #5D1A1B;
+            --soft-cream: #FDF9F3;
+            --warm-tan: #E8D5C4;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            background-color: var(--soft-cream);
+        }
+        .realness-glow {
+            box-shadow: 0 0 20px rgba(168, 218, 220, 0.6);
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .ios-blur {
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+        }
+        .speech-bubble-ai {
+            position: relative;
+            background: var(--primary-burgundy);
+            color: white;
+            border-radius: 24px 24px 24px 8px;
+        }
+        .speech-bubble-user {
+            position: relative;
+            background: #EFE3D7;
+            color: var(--primary-burgundy);
+            border-radius: 24px 24px 8px 24px;
+        }
+        /* Loading dots animation */
+        .typing-dot {
+            animation: typing 1.4s infinite;
+        }
+        @keyframes typing {
+            0%, 80%, 100% { opacity: 0; }
+            40% { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="text-slate-800 h-[100dvh] flex flex-col overflow-hidden bg-cream">
+
+<header class="flex-none pt-12 px-6 pb-4 border-b border-tan/20 bg-cream/80 ios-blur z-50">
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+            <div class="size-8 bg-burgundy rounded-xl flex items-center justify-center">
+                <span class="material-symbols-outlined text-white text-lg fill-1">shield_with_heart</span>
+            </div>
+            <div class="flex flex-col">
+                <h1 class="text-[10px] font-extrabold tracking-[0.2em] uppercase text-burgundy/50">Gadfly Protocol</h1>
+                <span class="text-lg font-bold text-burgundy tracking-tight">Real Talk Session</span>
+            </div>
+        </div>
+        <button onclick="window.location.reload()" class="px-3 py-1.5 rounded-full bg-burgundy/5 text-[10px] font-bold text-burgundy/60 hover:text-burgundy transition-colors uppercase tracking-widest">Reset</button>
+    </div>
+    <div class="flex flex-col gap-2 pb-2">
+        <div class="flex justify-between items-end mb-1">
+            <span class="text-[11px] font-bold tracking-wider text-burgundy/70 uppercase">The Realness Meter</span>
+            <span id="meter-text" class="text-xl font-black text-burgundy">72<span class="text-xs font-bold ml-0.5 opacity-40">%</span></span>
+        </div>
+        <div class="h-3 w-full bg-tan/30 rounded-full overflow-hidden p-0.5">
+            <div id="meter-bar" class="h-full bg-glow-teal rounded-full realness-glow transition-all duration-1000 ease-out" style="width: 72%;"></div>
+        </div>
+    </div>
+</header>
+
+<main id="chat-log" class="flex-1 overflow-y-auto px-5 py-8 space-y-8 no-scrollbar scroll-smooth">
+    <div class="flex flex-col gap-2 max-w-[85%]">
+        <div class="flex items-center gap-2 mb-1">
+            <span class="text-[10px] font-black text-burgundy/30 uppercase tracking-[0.15em]">Gadfly AI</span>
+        </div>
+        <div class="speech-bubble-ai p-5 shadow-lg shadow-burgundy/10">
+            <p class="text-base font-semibold leading-relaxed">
+                The Gadfly Protocol is active. What pathetic excuse are you trying to sell me today?
+            </p>
+        </div>
+    </div>
+</main>
+
+<footer class="flex-none bg-cream/80 ios-blur border-t border-tan/30 p-5 pb-10">
+    <div class="relative flex items-center gap-3">
+        <div class="relative flex-1">
+            <input id="user-input" class="w-full bg-white/80 border-0 ring-1 ring-tan/50 rounded-2xl py-4 px-6 text-burgundy font-semibold placeholder-burgundy/30 focus:outline-none focus:ring-2 focus:ring-burgundy/30 transition-all shadow-inner" placeholder="Type your excuse..." type="text"/>
+        </div>
+        <button id="send-btn" class="size-14 bg-burgundy rounded-2xl flex items-center justify-center text-white shadow-xl shadow-burgundy/20 active:scale-90 transition-transform disabled:opacity-50">
+            <span class="material-symbols-outlined font-black">arrow_upward</span>
+        </button>
+    </div>
+</footer>
+
+<script>
+    const sendBtn = document.getElementById('send-btn');
+    const chatInput = document.getElementById('user-input');
+    const chatLog = document.getElementById('chat-log');
+    const meterBar = document.getElementById('meter-bar');
+    const meterText = document.getElementById('meter-text');
+
+    const API_KEY = "AIzaSyBcqeFLxsazKJJi8lZWYRI65Hbl-xbjy4M"; 
+
+    // System instructions guide the persona without needing "training"
+    let chatHistory = [
+        {
+            role: "user",
+            parts: [{ text: "SYSTEM: You are Gadfly. You are an adversarial accountability coach. Use Socratic irony to dismantle my excuses. Never be supportive. Keep answers under 2 sentences. Be witty and sharp." }]
+        },
+        {
+            role: "model",
+            parts: [{ text: "Understood. The mirrors are ready. Proceed with your excuse." }]
+        }
+    ];
+
+    function updateMeter() {
+        let current = parseInt(meterBar.style.width);
+        // Random fluctuation to simulate "Realness" levels
+        let change = Math.floor(Math.random() * 21) - 10; 
+        let newValue = Math.min(100, Math.max(10, current + change));
+        meterBar.style.width = newValue + "%";
+        meterText.innerHTML = `${newValue}<span class="text-xs font-bold ml-0.5 opacity-40">%</span>`;
+    }
+
+    async function getGadflyResponse(userText) {
+        const url = "http://localhost:3000/chat";        
+        chatHistory.push({ role: "user", parts: [{ text: userText }] });
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: chatHistory })
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+            console.error("API ERROR:", data.error.message); // Log technical errors to the console
+            throw new Error(data.error.message);
+        }
+
+        const botReply = data.reply;
+    }
+
+    function appendMessage(role, text, isLoading = false) {
+        const wrapper = document.createElement('div');
+        wrapper.className = role === 'user' ? "flex flex-col items-end gap-2 ml-auto max-w-[85%]" : "flex flex-col gap-2 max-w-[85%]";
+        if (isLoading) wrapper.id = "loading-bubble";
+
+        const label = role === 'user' ? 'Me' : 'Gadfly AI';
+        const bubbleClass = role === 'user' ? 'speech-bubble-user' : 'speech-bubble-ai';
+
+        wrapper.innerHTML = `
+            <div class="flex items-center gap-2 mb-1">
+                <span class="text-[10px] font-black text-burgundy/30 uppercase tracking-[0.15em]">${label}</span>
+            </div>
+            <div class="${bubbleClass} p-5 shadow-lg">
+                <p class="text-base font-semibold leading-relaxed">${text}</p>
+            </div>
+        `;
+        
+        chatLog.appendChild(wrapper);
+        chatLog.scrollTo({ top: chatLog.scrollHeight, behavior: 'smooth' }); // Auto-scrolls to the bottom
+    }
+
+    sendBtn.addEventListener('click', async () => {
+        const text = chatInput.value.trim();
+        if(!text || sendBtn.disabled) return;
+
+        appendMessage('user', text);
+        chatInput.value = "";
+        sendBtn.disabled = true;
+
+        // Show typing indicator
+        appendMessage('gadfly', '<span class="typing-dot">.</span><span class="typing-dot" style="animation-delay:0.2s">.</span><span class="typing-dot" style="animation-delay:0.4s">.</span>', true);
+
+        try {
+            const reply = await getGadflyResponse(text);
+            document.getElementById('loading-bubble').remove();
+            appendMessage('gadfly', reply);
+            updateMeter();
+        } catch (e) {
+            if(document.getElementById('loading-bubble')) document.getElementById('loading-bubble').remove();
+            appendMessage('gadfly', "The Gadfly Protocol has hit a firewall. Is your resolve as disconnected as this API?");
+        } finally {
+            sendBtn.disabled = false;
+        }
+    });
+
+    chatInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') sendBtn.click(); });
+</script>
+</body>
+</html>
