@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gadfly — Begin the Dialogue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0a0a08;
+    --paper: #f5f2ec;
+    --ash: #b8b4ab;
+    --burn: #c94c2e;
+    --pale: #e8e4db;
+    --pale2: #dedad0;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.6;
+    cursor: none;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.35;
+  }
+
+  /* Custom cursor */
+  .cursor {
+    position: fixed;
+    width: 8px; height: 8px;
+    background: var(--burn);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.1s ease;
+    mix-blend-mode: multiply;
+  }
+  .cursor-ring {
+    position: fixed;
+    width: 32px; height: 32px;
+    border: 1px solid var(--ink);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: all 0.25s ease;
+    mix-blend-mode: multiply;
+  }
+
+  /* LAYOUT */
+  .app {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--ink);
+    color: var(--paper);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+    z-index: 10;
+  }
+
+  .sidebar-header {
+    padding: 1.8rem 1.5rem 1.2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+  }
+
+  .logo-mark {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--burn);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .logo-mark svg { width: 12px; height: 12px; }
+
+  .logo-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--paper);
+  }
+
+  .sidebar-tagline {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+    margin-top: 0.5rem;
+  }
+
+  .sidebar-section {
+    padding: 1rem 1.5rem 0.5rem;
+  }
+
+  .sidebar-section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 0.6rem;
+  }
+
+  .new-chat-btn {
+    width: 100%;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--paper);
+    padding: 0.65rem 1rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: left;
+    cursor: none;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .new-chat-btn:hover {
+    background: rgba(201,76,46,0.15);
+    border-color: rgba(201,76,46,0.4);
+  }
+  .new-chat-btn svg { width: 12px; height: 12px; opacity: 0.6; }
+
+  .sessions-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.1) transparent;
+  }
+
+  .session-item {
+    padding: 0.65rem 1.5rem;
+    cursor: none;
+    border-left: 2px solid transparent;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .session-item:hover { background: rgba(255,255,255,0.04); border-left-color: rgba(255,255,255,0.15); }
+  .session-item.active { background: rgba(255,255,255,0.06); border-left-color: var(--burn); }
+
+  .session-title {
+    font-size: 0.85rem;
+    font-weight: 300;
+    color: rgba(255,255,255,0.7);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 0.15rem;
+  }
+  .session-item.active .session-title { color: rgba(255,255,255,0.9); }
+
+  .session-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.55rem;
+    color: rgba(255,255,255,0.25);
+    letter-spacing: 0.08em;
+  }
+
+  .sidebar-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .back-link {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: rgba(255,255,255,0.7); }
+  .back-link svg { width: 10px; height: 10px; }
+
+  /* MAIN CHAT AREA */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Chat header */
+  .chat-header {
+    padding: 1.2rem 2rem;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    background: var(--paper);
+  }
+
+  .chat-header-info h2 {
+    font-size: 1rem;
+    font-weight: 400;
+    font-style: italic;
+  }
+
+  .chat-status {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ash);
+    margin-top: 0.1rem;
+  }
+  .status-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: #5a9e5a;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .chat-header-actions {
+    display: flex;
+    gap: 0.8rem;
+  }
+
+  .icon-btn {
+    width: 32px; height: 32px;
+    border: 1px solid rgba(0,0,0,0.1);
+    background: transparent;
+    cursor: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ash);
+    transition: all 0.2s;
+    border-radius: 2px;
+  }
+  .icon-btn:hover { border-color: var(--ink); color: var(--ink); }
+  .icon-btn svg { width: 14px; height: 14px; }
+
+  /* Messages */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0,0,0,0.1) transparent;
+  }
+
+  /* Welcome state */
+  .welcome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem;
+    animation: fadeIn 0.6s ease forwards;
+  }
+  .welcome-circle {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2rem;
+    position: relative;
+  }
+  .welcome-circle::before {
+    content: '';
+    position: absolute;
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    border: 1px solid rgba(201,76,46,0.2);
+    animation: slowRotate 8s linear infinite;
+  }
+  .welcome-circle svg { width: 24px; height: 24px; color: var(--burn); }
+
+  .welcome h3 {
+    font-size: 1.8rem;
+    font-weight: 300;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.01em;
+  }
+  .welcome p {
+    font-size: 1rem;
+    color: #666;
+    font-weight: 300;
+    max-width: 420px;
+    line-height: 1.7;
+    margin-bottom: 2.5rem;
+  }
+
+  .prompts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 520px;
+  }
+
+  .prompt-chip {
+    background: var(--pale);
+    border: 1px solid rgba(0,0,0,0.08);
+    padding: 0.9rem 1.1rem;
+    text-align: left;
+    cursor: none;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 0.85rem;
+    color: var(--ink);
+    line-height: 1.4;
+    transition: all 0.2s;
+    border-radius: 2px;
+  }
+  .prompt-chip:hover {
+    background: var(--paper);
+    border-color: rgba(0,0,0,0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  }
+  .prompt-chip-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.5rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--burn);
+    margin-bottom: 0.3rem;
+  }
+
+  /* Message bubbles */
+  .message {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.5rem;
+    animation: fadeIn 0.4s ease forwards;
+    max-width: 75%;
+  }
+
+  .message.user { align-self: flex-end; align-items: flex-end; }
+  .message.gadfly { align-self: flex-start; align-items: flex-start; }
+
+  .msg-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .message.user .msg-meta { color: var(--ash); }
+  .message.gadfly .msg-meta { color: var(--burn); }
+
+  .msg-bubble {
+    padding: 1.1rem 1.4rem;
+    font-size: 1rem;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  .message.user .msg-bubble {
+    background: var(--pale);
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 2px 0 2px 2px;
+    border-right: 2px solid var(--ash);
+  }
+
+  .message.gadfly .msg-bubble {
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 0 2px 2px 2px;
+    border-left: 2px solid var(--burn);
+  }
+
+  /* Typing indicator */
+  .typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 1rem 1.4rem;
+    background: var(--ink);
+    border-left: 2px solid var(--burn);
+    border-radius: 0 2px 2px 2px;
+    align-self: flex-start;
+    animation: fadeIn 0.3s ease forwards;
+  }
+  .typing-dot {
+    width: 5px; height: 5px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 50%;
+    animation: typingBounce 1.2s infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* INPUT AREA */
+  .input-area {
+    flex-shrink: 0;
+    padding: 1rem 2rem 1.5rem;
+    background: var(--paper);
+    border-top: 1px solid rgba(0,0,0,0.07);
+  }
+
+  .input-wrapper {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.75rem;
+    background: var(--pale);
+    border: 1px solid rgba(0,0,0,0.1);
+    padding: 0.75rem 0.75rem 0.75rem 1.2rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .input-wrapper:focus-within {
+    border-color: rgba(0,0,0,0.25);
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.04);
+  }
+
+  #messageInput {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1rem;
+    color: var(--ink);
+    resize: none;
+    min-height: 24px;
+    max-height: 140px;
+    line-height: 1.6;
+    cursor: none;
+  }
+  #messageInput::placeholder { color: var(--ash); font-style: italic; }
+
+  .send-btn {
+    width: 36px; height: 36px;
+    background: var(--ink);
+    border: none;
+    cursor: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .send-btn:hover { background: var(--burn); }
+  .send-btn:disabled { background: rgba(0,0,0,0.15); }
+  .send-btn svg { width: 14px; height: 14px; color: white; }
+
+  .input-hint {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+    color: var(--ash);
+    text-align: center;
+    margin-top: 0.6rem;
+    text-transform: uppercase;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slowRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* Scrollbar */
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 2px; }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    .sidebar { display: none; }
+    .message { max-width: 90%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <a href="gadfly.html" class="sidebar-logo">
+        <div class="logo-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color: var(--burn)">
+            <circle cx="12" cy="12" r="9"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="15" x2="12" y2="16"/>
+          </svg>
+        </div>
+        <span class="logo-text">Gadfly</span>
+      </a>
+      <div class="sidebar-tagline">The Unwavered Self</div>
+    </div>
+
+    <div class="sidebar-section">
+      <button class="new-chat-btn" id="newChatBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        New Dialogue
+      </button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Recent Sessions</div>
+    </div>
+
+    <div class="sessions-list" id="sessionsList">
+      <!-- Sessions will be populated by JS -->
+    </div>
+
+    <div class="sidebar-footer">
+      <a href="gadfly.html" class="back-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <line x1="19" y1="12" x2="5" y2="12"/>
+          <polyline points="12 19 5 12 12 5"/>
+        </svg>
+        Back to Gadfly
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN CHAT -->
+  <main class="chat-area">
+    <div class="chat-header">
+      <div class="chat-header-info">
+        <h2 id="sessionTitle">New Dialogue</h2>
+        <div class="chat-status">
+          <div class="status-dot"></div>
+          <span>Gadfly is watching</span>
+        </div>
+      </div>
+      <div class="chat-header-actions">
+        <button class="icon-btn" title="Clear conversation" id="clearBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6l-1 14H6L5 6"/>
+            <path d="M10 11v6M14 11v6"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="messages" id="messagesContainer">
+      <!-- Welcome state shown by default -->
+      <div class="welcome" id="welcomeScreen">
+        <div class="welcome-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <circle cx="12" cy="12" r="9"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="15" x2="12" y2="16"/>
+          </svg>
+        </div>
+        <h3>Begin the Examination</h3>
+        <p>Share something you've been avoiding, a decision you've deferred, or a promise you've broken to yourself. Gadfly will ask the questions you've been refusing to ask.</p>
+        <div class="prompts-grid">
+          <button class="prompt-chip" onclick="usePrompt(this.querySelector('.prompt-text').textContent)">
+            <div class="prompt-chip-label">Accountability</div>
+            <div class="prompt-text">I keep saying I'll start exercising but I never do. I don't know why.</div>
+          </button>
+          <button class="prompt-chip" onclick="usePrompt(this.querySelector('.prompt-text').textContent)">
+            <div class="prompt-chip-label">Intention vs. Action</div>
+            <div class="prompt-text">I told myself this year would be different. It hasn't been.</div>
+          </button>
+          <button class="prompt-chip" onclick="usePrompt(this.querySelector('.prompt-text').textContent)">
+            <div class="prompt-chip-label">Avoidance</div>
+            <div class="prompt-text">There's a conversation I need to have and I keep finding reasons to delay it.</div>
+          </button>
+          <button class="prompt-chip" onclick="usePrompt(this.querySelector('.prompt-text').textContent)">
+            <div class="prompt-chip-label">Values</div>
+            <div class="prompt-text">I say my relationships matter most to me, but I consistently act otherwise.</div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-wrapper">
+        <textarea
+          id="messageInput"
+          placeholder="Speak honestly. Gadfly is listening."
+          rows="1"
+        ></textarea>
+        <button class="send-btn" id="sendBtn" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+        </button>
+      </div>
+      <div class="input-hint">Enter to send · Shift+Enter for new line</div>
+    </div>
+  </main>
+</div>
+
+<script>
+  // ─── CURSOR ───────────────────────────────────────────────
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    cursor.style.left = mx + 'px';
+    cursor.style.top = my + 'px';
+  });
+  function animateRing() {
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    ring.style.left = rx + 'px';
+    ring.style.top = ry + 'px';
+    requestAnimationFrame(animateRing);
+  }
+  animateRing();
+  document.querySelectorAll('a, button, textarea').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      cursor.style.transform = 'translate(-50%,-50%) scale(2)';
+      ring.style.transform = 'translate(-50%,-50%) scale(1.4)';
+      ring.style.borderColor = 'var(--burn)';
+    });
+    el.addEventListener('mouseleave', () => {
+      cursor.style.transform = 'translate(-50%,-50%) scale(1)';
+      ring.style.transform = 'translate(-50%,-50%) scale(1)';
+      ring.style.borderColor = 'var(--ink)';
+    });
+  });
+
+  // ─── STATE ────────────────────────────────────────────────
+  let sessions = JSON.parse(localStorage.getItem('gadfly_sessions') || '[]');
+  let currentSessionId = null;
+  let conversationHistory = []; // {role, content}
+  let isTyping = false;
+
+  // ─── GADFLY AI RESPONSE ───────────────────────────────────
+  async function getGadflyResponse(userMessage) {
+    conversationHistory.push({ role: 'user', content: userMessage });
+    const messages = conversationHistory.map(m => ({ role: m.role, content: m.content }));
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || `Server error ${response.status}`);
+      }
+      const assistantMessage = data.text || "The line held, even when the connection didn't. Try again.";
+      conversationHistory.push({ role: 'assistant', content: assistantMessage });
+      return assistantMessage;
+    } catch (err) {
+      console.error(err);
+      return `⚠ Error: ${err.message}. Check your Netlify env variable is named exactly GEMINI_API_KEY and redeploy.`;
+    }
+  }
+
+  // ─── SESSIONS ─────────────────────────────────────────────
+  function saveSessions() {
+    localStorage.setItem('gadfly_sessions', JSON.stringify(sessions));
+  }
+
+  function createSession(firstMessage) {
+    const id = Date.now().toString();
+    const title = firstMessage.length > 45 ? firstMessage.slice(0, 45) + '…' : firstMessage;
+    const session = {
+      id,
+      title,
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      history: []
+    };
+    sessions.unshift(session);
+    saveSessions();
+    renderSessions();
+    return id;
+  }
+
+  function updateSessionHistory(id) {
+    const s = sessions.find(s => s.id === id);
+    if (s) {
+      s.history = conversationHistory;
+      saveSessions();
+    }
+  }
+
+  function renderSessions() {
+    const list = document.getElementById('sessionsList');
+    if (sessions.length === 0) {
+      list.innerHTML = '<div style="padding: 1rem 1.5rem; font-family: DM Mono, monospace; font-size: 0.6rem; color: rgba(255,255,255,0.2); letter-spacing: 0.1em; text-transform: uppercase;">No sessions yet</div>';
+      return;
+    }
+    list.innerHTML = sessions.map(s => `
+      <div class="session-item ${s.id === currentSessionId ? 'active' : ''}" onclick="loadSession('${s.id}')">
+        <div class="session-title">${s.title}</div>
+        <div class="session-date">${s.date}</div>
+      </div>
+    `).join('');
+  }
+
+  function loadSession(id) {
+    const s = sessions.find(s => s.id === id);
+    if (!s) return;
+    currentSessionId = id;
+    conversationHistory = [...s.history];
+    document.getElementById('sessionTitle').textContent = s.title;
+
+    // Render messages
+    const container = document.getElementById('messagesContainer');
+    container.innerHTML = '';
+    conversationHistory.forEach(m => {
+      appendMessage(m.role === 'user' ? 'user' : 'gadfly', m.content, false);
+    });
+    renderSessions();
+    scrollToBottom();
+  }
+
+  // ─── MESSAGES ─────────────────────────────────────────────
+  function appendMessage(role, text, animate = true) {
+    const welcome = document.getElementById('welcomeScreen');
+    if (welcome) welcome.remove();
+
+    const container = document.getElementById('messagesContainer');
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+    if (!animate) div.style.animation = 'none';
+
+    const label = role === 'user' ? 'You' : 'Gadfly';
+    div.innerHTML = `
+      <div class="msg-meta">${label}</div>
+      <div class="msg-bubble">${text.replace(/\n/g, '<br>')}</div>
+    `;
+    container.appendChild(div);
+    scrollToBottom();
+    return div;
+  }
+
+  function showTyping() {
+    const welcome = document.getElementById('welcomeScreen');
+    if (welcome) welcome.remove();
+
+    const container = document.getElementById('messagesContainer');
+    const div = document.createElement('div');
+    div.id = 'typingIndicator';
+    div.innerHTML = `
+      <div class="msg-meta" style="font-family: DM Mono, monospace; font-size: 0.55rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--burn); margin-bottom: 0.4rem;">Gadfly</div>
+      <div class="typing-indicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    `;
+    div.style.alignSelf = 'flex-start';
+    div.style.animation = 'fadeIn 0.3s ease forwards';
+    container.appendChild(div);
+    scrollToBottom();
+  }
+
+  function removeTyping() {
+    const t = document.getElementById('typingIndicator');
+    if (t) t.remove();
+  }
+
+  function scrollToBottom() {
+    const c = document.getElementById('messagesContainer');
+    c.scrollTop = c.scrollHeight;
+  }
+
+  // ─── SEND ─────────────────────────────────────────────────
+  async function sendMessage(text) {
+    if (!text.trim() || isTyping) return;
+    isTyping = true;
+
+    const input = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    input.value = '';
+    input.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    // Create session on first message
+    if (!currentSessionId) {
+      currentSessionId = createSession(text);
+      document.getElementById('sessionTitle').textContent = text.length > 45 ? text.slice(0, 45) + '…' : text;
+    }
+
+    appendMessage('user', text);
+    showTyping();
+
+    const response = await getGadflyResponse(text);
+    removeTyping();
+    appendMessage('gadfly', response);
+    updateSessionHistory(currentSessionId);
+
+    isTyping = false;
+    sendBtn.disabled = false;
+    input.focus();
+  }
+
+  function usePrompt(text) {
+    const input = document.getElementById('messageInput');
+    input.value = text;
+    input.dispatchEvent(new Event('input'));
+    input.focus();
+  }
+
+  // ─── INPUT EVENTS ─────────────────────────────────────────
+  const input = document.getElementById('messageInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 140) + 'px';
+    sendBtn.disabled = !input.value.trim();
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!sendBtn.disabled) sendMessage(input.value);
+    }
+  });
+
+  sendBtn.addEventListener('click', () => sendMessage(input.value));
+
+  // ─── NEW CHAT ──────────────────────────────────────────────
+  document.getElementById('newChatBtn').addEventListener('click', () => {
+    currentSessionId = null;
+    conversationHistory = [];
+    document.getElementById('sessionTitle').textContent = 'New Dialogue';
+
+    const container = document.getElementById('messagesContainer');
+    container.innerHTML = `
+      <div class="welcome" id="welcomeScreen">
+        <div class="welcome-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+            <circle cx="12" cy="12" r="9"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="15" x2="12" y2="16"/>
+          </svg>
+        </div>
+        <h3>Begin the Examination</h3>
+        <p>Share something you've been avoiding, a decision you've deferred, or a promise you've broken to yourself. Gadfly will ask the questions you've been refusing to ask.</p>
+        <div class="prompts-grid">
+          <button class="prompt-chip" onclick="usePrompt(this.querySelector('.prompt-text').textContent)">
+            <div class="prompt-chip-label">Accountability</div>
+            <div class="prompt-text">I keep saying I'll start exercising but I never do. I don't know why.</div>
+          </button>
+          <button class="prompt-chip" onclick="usePrompt(this.querySelector('.prompt-text').textContent)">
+            <div class="prompt-chip-label">Intention vs. Action</div>
+            <div class="prompt-text">I told myself this year would be different. It hasn't been.</div>
+          </button>
+          <button class="prompt-chip" onclick="usePrompt(this.querySelector('.prompt-text').textContent)">
+            <div class="prompt-chip-label">Avoidance</div>
+            <div class="prompt-text">There's a conversation I need to have and I keep finding reasons to delay it.</div>
+          </button>
+          <button class="prompt-chip" onclick="usePrompt(this.querySelector('.prompt-text').textContent)">
+            <div class="prompt-chip-label">Values</div>
+            <div class="prompt-text">I say my relationships matter most to me, but I consistently act otherwise.</div>
+          </button>
+        </div>
+      </div>
+    `;
+    renderSessions();
+  });
+
+  // ─── CLEAR ────────────────────────────────────────────────
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    if (conversationHistory.length === 0) return;
+    if (confirm('Clear this conversation?')) {
+      document.getElementById('newChatBtn').click();
+    }
+  });
+
+  // ─── INIT ─────────────────────────────────────────────────
+  renderSessions();
+</script>
+</body>
+</html>
